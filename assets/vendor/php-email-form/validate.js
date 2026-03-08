@@ -8,40 +8,44 @@
 
   let forms = document.querySelectorAll('.php-email-form');
 
-  forms.forEach(function (form) {
-    form.addEventListener('submit', function (event) {
+  forms.forEach(function(form) {
+    form.addEventListener('submit', function(event) {
+      event.preventDefault();
 
       let thisForm = this;
-      let emailField = thisForm.querySelector('input[name="email"]');
-      let emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      let action = thisForm.getAttribute('action');
 
-      // reset messages
-      thisForm.querySelector('.error-message').classList.remove('d-block');
-      thisForm.querySelector('.sent-message').classList.remove('d-block');
-
-      // validate email
-      if (emailField && !emailPattern.test(emailField.value)) {
-        event.preventDefault();
-        displayError(thisForm, "Please enter a valid email address.");
+      if (!action) {
+        displayError(thisForm, 'The form action property is not set!');
         return;
       }
 
-      // validate required fields
-      let requiredFields = thisForm.querySelectorAll("[required]");
-      for (let field of requiredFields) {
-        if (!field.value.trim()) {
-          event.preventDefault();
-          displayError(thisForm, "Please fill all required fields.");
-          return;
-        }
-      }
-
-      // show loading spinner
       thisForm.querySelector('.loading').classList.add('d-block');
+      thisForm.querySelector('.error-message').classList.remove('d-block');
+      thisForm.querySelector('.sent-message').classList.remove('d-block');
 
-      // allow normal form submit (FormSubmit will handle email)
+      let formData = new FormData(thisForm);
+
+      php_email_form_submit(thisForm, action, formData);
     });
   });
+
+  function php_email_form_submit(thisForm, action, formData) {
+
+    fetch(action, {
+      method: 'POST',
+      body: formData
+    })
+    .then(() => {
+      thisForm.querySelector('.loading').classList.remove('d-block');
+      thisForm.querySelector('.sent-message').classList.add('d-block');
+      thisForm.reset();
+    })
+    .catch((error) => {
+      displayError(thisForm, error);
+    });
+
+  }
 
   function displayError(thisForm, error) {
     thisForm.querySelector('.loading').classList.remove('d-block');
